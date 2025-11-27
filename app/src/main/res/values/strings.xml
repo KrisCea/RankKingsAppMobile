@@ -1,3 +1,53 @@
 <resources>
-    <string name="app_name">RankKingsAppMobile</string>
+    <string name="app_name">Rankkings</string>
+
+    <!-- Login -->
+    <string name="login_title">Iniciar Sesión</string>
+    <string name="email">Email</string>
+    <string name="password">Contraseña</string>
+    <string name="login_button">Iniciar Sesión</string>
+    <string name="register_button">Crear Cuenta</string>
+    <string name="continue_without_account">Continuar sin cuenta</string>
+
+    <!-- Register -->
+    <string name="register_title">Crear Cuenta</string>
+    <string name="username">Nombre de usuario</string>
+    <string name="confirm_password">Confirmar contraseña</string>
+    <string name="already_have_account">¿Ya tienes cuenta?</string>
+
+    <!-- Home -->
+    <string name="no_posts">No hay posts aún</string>
+    <string name="create_first_post">Sé el primero en compartir tu ranking de álbumes</string>
+
+    <!-- Create Post -->
+    <string name="create_ranking">Crear Ranking</string>
+    <string name="post_title">Título de tu ranking</string>
+    <string name="post_description">Descripción (opcional)</string>
+    <string name="add_album">Agregar Álbum</string>
+    <string name="album_name">Nombre del álbum</string>
+    <string name="artist_name">Artista</string>
+    <string name="camera">Cámara</string>
+    <string name="gallery">Galería</string>
+    <string name="publish">Publicar</string>
+
+    <!-- Profile -->
+    <string name="my_profile">Mi Perfil</string>
+    <string name="my_rankings">Mis Rankings</string>
+    <string name="edit">Editar</string>
+    <string name="logout">Salir</string>
+    <string name="login_to_view_profile">Inicia sesión para ver tu perfil</string>
+
+    <!-- Post Detail -->
+    <string name="detail">Detalle del Ranking</string>
+    <string name="comments">Comentarios</string>
+    <string name="write_comment">Escribe un comentario...</string>
+    <string name="send">Enviar</string>
+
+    <!-- Common -->
+    <string name="back">Volver</string>
+    <string name="cancel">Cancelar</string>
+    <string name="save">Guardar</string>
+    <string name="delete">Eliminar</string>
+    <string name="error">Error</string>
+    <string name="loading">Cargando...</string>
 </resources>
