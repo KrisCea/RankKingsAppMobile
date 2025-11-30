@@ -18,9 +18,9 @@ interface UserDao {
     @Query("SELECT * FROM users WHERE email = :email LIMIT 1")
     suspend fun getUserByEmail(email: String): User?
 
-    // Obtener usuario por username
-    @Query("SELECT * FROM users WHERE username = :username LIMIT 1")
-    suspend fun getUserByUsername(username: String): User?
+    // Obtener usuario por nombre
+    @Query("SELECT * FROM users WHERE name = :name LIMIT 1")
+    suspend fun getUserByName(name: String): User?
 
     // Obtener usuario por ID
     @Query("SELECT * FROM users WHERE id = :userId")

@@ -48,14 +48,14 @@ fun AppNavigation(
     // Determinar la ruta de inicio basada en el estado de autenticación
     val initialStartDestination = if (isLoggedIn) Screen.Home.route else Screen.Login.route
 
-    Log.d("AppNavigation", "Composable Recomposed. CurrentUser: ${currentUser?.username}, IsLoggedIn: $isLoggedIn, InitialDest: $initialStartDestination")
+    Log.d("AppNavigation", "Composable Recomposed. CurrentUser: ${currentUser?.name}, IsLoggedIn: $isLoggedIn, InitialDest: $initialStartDestination")
 
     // LaunchedEffect para navegar después del login o al restaurar la sesión
     LaunchedEffect(currentUser) {
-        Log.d("AppNavigation", "LaunchedEffect triggered. CurrentUser: ${currentUser?.username}, IsLoggedIn: ${currentUser != null}")
+        Log.d("AppNavigation", "LaunchedEffect triggered. CurrentUser: ${currentUser?.name}, IsLoggedIn: ${currentUser != null}")
 
         if (currentUser != null) {
-            Log.d("AppNavigation", "Navigating to Home after login/session restore. User: ${currentUser?.username}")
+            Log.d("AppNavigation", "Navigating to Home after login/session restore. User: ${currentUser?.name}")
             // Si el usuario se loguea o ya está logueado al iniciar, ir a Home
             navController.navigate(Screen.Home.route) {
                 // Limpiar la pila de atrás para que no se pueda volver a Login/Register

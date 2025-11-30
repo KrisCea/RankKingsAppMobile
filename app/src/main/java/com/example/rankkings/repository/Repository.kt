@@ -32,8 +32,8 @@ class Repository @Inject constructor(
         return userDao.getUserById(userId)
     }
 
-    suspend fun getUserByUsername(username: String): User? {
-        return userDao.getUserByUsername(username)
+    suspend fun getUserByName(name: String): User? {
+        return userDao.getUserByName(name)
     }
 
     suspend fun getUserByEmail(email: String): User? {
@@ -94,6 +94,8 @@ class Repository @Inject constructor(
     suspend fun insertAlbums(albums: List<Album>) {
         albumDao.insertAlbums(albums)
     }
+
+
 
     fun getAlbumsByPostId(postId: Int): Flow<List<Album>> {
         return albumDao.getAlbumsByPostId(postId)

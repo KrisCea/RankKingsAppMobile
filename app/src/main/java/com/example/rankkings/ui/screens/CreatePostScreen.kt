@@ -67,7 +67,7 @@ fun CreatePostScreen(
                     TextButton(
                         onClick = {
                             currentUser?.let { user ->
-                                postViewModel.createPost(user.id, user.username, title, description, albums)
+                                postViewModel.createPost(user.id, user.name, title, description, albums) // CAMBIO AQUÍ
                             }
                         },
                         enabled = title.isNotBlank() && albums.size >= 2 && uiState !is PostUiState.Loading && currentUser != null

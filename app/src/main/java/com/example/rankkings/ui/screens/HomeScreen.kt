@@ -6,19 +6,20 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
-import androidx.compose.runtime.* // Importación para remember y collectAsState
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel // Importar hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.rankkings.model.Post
-import com.example.rankkings.model.User
 import com.example.rankkings.ui.components.PostCard
 import com.example.rankkings.ui.components.RankkingsBottomBar
 import com.example.rankkings.ui.components.RankkingsTopBar
-import com.example.rankkings.viewmodel.AuthViewModel // Importar AuthViewModel
+import com.example.rankkings.viewmodel.AuthViewModel
 import com.example.rankkings.viewmodel.PostViewModel
+import com.example.rankkings.ui.viewmodel.UserViewModel
+import com.example.rankkings.model.UserDto
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,12 +29,22 @@ fun HomeScreen(
     onNavigateToProfile: (String?) -> Unit,
     onNavigateToSaved: () -> Unit,
     onNavigateToLogin: () -> Unit,
-    postViewModel: PostViewModel = hiltViewModel(), // Inyectar PostViewModel con Hilt
-    authViewModel: AuthViewModel = hiltViewModel() // Inyectar AuthViewModel con Hilt
+    postViewModel: PostViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel(),
+    userViewModel: UserViewModel = hiltViewModel() // Inyectar UserViewModel
 ) {
     val posts by postViewModel.posts.collectAsState()
-    val currentUser by authViewModel.currentUser.collectAsState() // Obtener currentUser internamente
+    val currentUser by authViewModel.currentUser.collectAsState()
     val isLoggedIn = currentUser != null
+
+    // Obtener la lista de usuarios de Xano
+    val users by userViewModel.users.collectAsState()
+    val errorMessage by userViewModel.errorMessage.collectAsState()
+
+    // Llamar a la API cuando el Composable se lanza por primera vez
+    LaunchedEffect(Unit) {
+        userViewModel.getAllUsers()
+    }
 
     Scaffold(
         topBar = { RankkingsTopBar(title = "Rankkings") },
@@ -59,25 +70,49 @@ fun HomeScreen(
             }
         }
     ) { paddingValues ->
-        if (posts.isEmpty()) {
-            Box(Modifier.fillMaxSize().padding(paddingValues), Alignment.Center) {
-                Text("No hay posts aún. ¡Sé el primero!", textAlign = TextAlign.Center)
+        Column(modifier = Modifier.padding(paddingValues)) {
+            if (posts.isEmpty()) {
+                Box(Modifier.fillMaxWidth().weight(1f), Alignment.Center) {
+                    Text("No hay posts aún. ¡Sé el primero!", textAlign = TextAlign.Center)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(vertical = 8.dp)
+                ) {
+                    items(posts, key = { it.id }) { post ->
+                        PostCardWithAlbums(
+                            post = post,
+                            postViewModel = postViewModel,
+                            authViewModel = authViewModel,
+                            onNavigateToPostDetail = onNavigateToPostDetail,
+                            onNavigateToLogin = onNavigateToLogin,
+                            onNavigateToProfile = onNavigateToProfile
+                        )
+                    }
+                }
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(paddingValues),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(vertical = 8.dp)
-            ) {
-                items(posts, key = { it.id }) { post ->
-                    PostCardWithAlbums(
-                        post = post,
-                        postViewModel = postViewModel,
-                        authViewModel = authViewModel, // Pasar AuthViewModel
-                        onNavigateToPostDetail = onNavigateToPostDetail,
-                        onNavigateToLogin = onNavigateToLogin,
-                        onNavigateToProfile = onNavigateToProfile
-                    )
+
+            // --- Sección para mostrar usuarios de Xano ---
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            Text("Usuarios de Xano:", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 16.dp))
+
+            if (errorMessage != null) {
+                Text(text = errorMessage!!, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp))
+            }
+
+            if (users.isEmpty() && errorMessage == null) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(users) { user ->
+                        Text("ID: ${user.id}, Nombre: ${user.name}, Email: ${user.email}")
+                    }
                 }
             }
         }
@@ -88,13 +123,14 @@ fun HomeScreen(
 private fun PostCardWithAlbums(
     post: Post,
     postViewModel: PostViewModel,
-    authViewModel: AuthViewModel, // Añadir AuthViewModel aquí
+    authViewModel: AuthViewModel,
+
     onNavigateToPostDetail: (Int) -> Unit,
     onNavigateToLogin: () -> Unit,
     onNavigateToProfile: (String?) -> Unit
 ) {
     val albums by postViewModel.getAlbumsForPost(post.id).collectAsState(initial = emptyList())
-    val currentUser by authViewModel.currentUser.collectAsState() // Obtener currentUser aquí
+    val currentUser by authViewModel.currentUser.collectAsState()
     val isLoggedIn = currentUser != null
 
     PostCard(

@@ -109,7 +109,7 @@ fun PostDetailScreen(
                                         postViewModel.addComment(
                                             postId = postId,
                                             userId = user.id,
-                                            username = user.username,
+                                            name = user.name, // CAMBIO AQUÍ
                                             content = commentText
                                         )
                                         commentText = ""
@@ -223,7 +223,7 @@ fun PostDetailScreen(
                 } else {
                     items(comments) { comment ->
                         CommentItem(
-                            username = comment.username,
+                            name = comment.name, // CAMBIO AQUÍ
                             content = comment.content,
                             timestamp = comment.timestamp
                         )
@@ -244,7 +244,7 @@ fun PostDetailScreen(
  */
 @Composable
 fun CommentItem(
-    username: String,
+    name: String, // CAMBIO AQUÍ
     content: String,
     timestamp: Long
 ) {
@@ -267,7 +267,7 @@ fun CommentItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = username,
+                    text = name, // CAMBIO AQUÍ
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = CommentBlue

@@ -67,7 +67,7 @@ class PostViewModel @Inject constructor(private val repository: Repository) : Vi
 
     fun createPost(
         userId: Int,
-        username: String,
+        name: String, // CAMBIO AQUÍ
         title: String,
         description: String,
         albums: List<Album>
@@ -79,7 +79,7 @@ class PostViewModel @Inject constructor(private val repository: Repository) : Vi
                 return@launch
             }
             try {
-                val post = Post(userId = userId.toString(), username = username, title = title, description = description)
+                val post = Post(userId = userId.toString(), name = name, title = title, description = description) // CAMBIO AQUÍ
                 val postId = repository.createPost(post)
                 val albumsWithPostId = albums.map { it.copy(postId = postId.toInt()) }
                 repository.insertAlbums(albumsWithPostId)
@@ -124,10 +124,10 @@ class PostViewModel @Inject constructor(private val repository: Repository) : Vi
         }
     }
 
-    fun addComment(postId: Int, userId: Int, username: String, content: String) {
+    fun addComment(postId: Int, userId: Int, name: String, content: String) { // CAMBIO AQUÍ
         viewModelScope.launch {
             if (content.isBlank()) return@launch
-            val comment = Comment(postId = postId, userId = userId, username = username, content = content)
+            val comment = Comment(postId = postId, userId = userId, name = name, content = content) // CAMBIO AQUÍ
             repository.addComment(comment)
         }
     }

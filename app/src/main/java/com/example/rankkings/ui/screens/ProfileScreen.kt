@@ -68,7 +68,7 @@ fun ProfileScreen(
 
     Scaffold(
         topBar = {
-            RankkingsTopBar(title = if (isMyProfile) "Mi Perfil" else userToShow?.username ?: "Perfil")
+            RankkingsTopBar(title = if (isMyProfile) "Mi Perfil" else userToShow?.name ?: "Perfil") // CAMBIO AQUÍ
         },
         bottomBar = {
             RankkingsBottomBar(
@@ -112,7 +112,7 @@ fun ProfileScreen(
 
                 item {
                     Text(
-                        text = if (isMyProfile) "Mis Rankings" else "Rankings de ${userToShow?.username}",
+                        text = if (isMyProfile) "Mis Rankings" else "Rankings de ${userToShow?.name}", // CAMBIO AQUÍ
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -191,12 +191,12 @@ fun ProfileHeader(
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
-        Text(text = user.username, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text(text = user.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) // CAMBIO AQUÍ
         Spacer(modifier = Modifier.height(4.dp))
         Text(text = user.email, style = MaterialTheme.typography.bodyMedium)
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (user.interests.isNotEmpty()) {
+        if (user.interests?.isNotEmpty() == true) { // CAMBIO AQUÍ
             FlowRow(
                 horizontalArrangement = Arrangement.Center,
                 verticalArrangement = Arrangement.spacedBy(8.dp),

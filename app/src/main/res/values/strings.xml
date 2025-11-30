@@ -11,7 +11,7 @@
 
     <!-- Register -->
     <string name="register_title">Crear Cuenta</string>
-    <string name="username">Nombre de usuario</string>
+    <string name="name_of_user">Nombre de usuario</string>
     <string name="confirm_password">Confirmar contraseña</string>
     <string name="already_have_account">¿Ya tienes cuenta?</string>
 

@@ -4,7 +4,11 @@ import android.util.Log
 import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.rankkings.model.LoginRequest
+import com.example.rankkings.model.SignupRequest
 import com.example.rankkings.model.User
+import com.example.rankkings.model.UserDto
+import com.example.rankkings.network.ApiService
 import com.example.rankkings.repository.Repository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
@@ -13,22 +17,25 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import at.favre.lib.crypto.bcrypt.BCrypt
 import javax.inject.Inject
+import javax.inject.Named // Importar @Named
 
 // Para DataStore
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val repository: Repository,
-    private val dataStore: DataStore<Preferences> // Inyectar DataStore
+    private val repository: Repository, // Para operaciones locales de usuario (Room)
+    @Named("AuthApiService") private val apiService: ApiService, // Para operaciones de autenticación con Xano
+    private val dataStore: DataStore<Preferences>
 ) : ViewModel() {
 
-    private val _currentUser = MutableStateFlow<User?>(null)
+    private val _currentUser = MutableStateFlow<User?>(null) // Sigue siendo la entidad local de Room
     val currentUser: StateFlow<User?> = _currentUser
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
@@ -36,33 +43,50 @@ class AuthViewModel @Inject constructor(
 
     private val TAG = "AuthViewModel"
 
-    // Clave para almacenar el ID del usuario en DataStore
+    // Claves para almacenar en DataStore
     private val USER_ID_KEY = intPreferencesKey("user_id")
+    private val AUTH_TOKEN_KEY = stringPreferencesKey("auth_token") // Nueva clave para el token
 
     init {
-        // Intentar cargar la sesión del usuario al inicializar el ViewModel
         viewModelScope.launch {
-            dataStore.data
-                .map { preferences -> preferences[USER_ID_KEY] }
-                .firstOrNull() // Obtener el primer valor o null si no existe
-                ?.let { userId ->
-                    Log.d(TAG, "init: Found user ID in DataStore: $userId. Loading user...")
-                    // Cargar el usuario completo desde el repositorio
-                    repository.getUserById(userId).collect {
-                        _currentUser.value = it
-                        if (it != null) {
+            val userId = dataStore.data.map { preferences -> preferences[USER_ID_KEY] }.firstOrNull()
+            val authToken = dataStore.data.map { preferences -> preferences[AUTH_TOKEN_KEY] }.firstOrNull()
+
+            if (userId != null && authToken != null) {
+                Log.d(TAG, "init: Found user ID and Auth Token in DataStore. Loading user...")
+                // Usar auth/me para obtener los datos del usuario de Xano
+                try {
+                    // Esta llamada todavía depende del interceptor, ya que es al inicio de la app
+                    val response = apiService.getAuthUser()
+                    if (response.isSuccessful) {
+                        val xanoUser = response.body()
+                        if (xanoUser != null) {
+                            // Mapear UserDto a User (entidad de Room) para compatibilidad local
+                            val localUser = User(id = xanoUser.id, name = xanoUser.name, email = xanoUser.email, passwordHash = "", profileImageUri = null, interests = null) // TODO: Ajustar mapeo completo
+                            _currentUser.value = localUser
                             _authState.value = AuthState.Success
-                            Log.d(TAG, "init: User loaded successfully from DataStore: ${it.username}")
+                            Log.d(TAG, "init: User loaded successfully from Xano: ${xanoUser.name}")
                         } else {
-                            Log.e(TAG, "init: User not found in DB for ID: $userId. Clearing DataStore.")
+                            Log.e(TAG, "init: Xano user data is null. Clearing session.")
                             clearUserSession()
                         }
+                    } else {
+                        Log.e(TAG, "init: Xano auth/me failed: ${response.code()} ${response.message()}. Clearing session.")
+                        clearUserSession()
                     }
+                } catch (e: Exception) {
+                    Log.e(TAG, "init: Exception calling auth/me: ${e.message}. Clearing session.", e)
+                    clearUserSession()
                 }
+            } else {
+                Log.d(TAG, "init: No user ID or Auth Token found in DataStore.")
+                _authState.value = AuthState.Idle
+            }
         }
     }
 
     fun getUserById(userId: String): Flow<User?> {
+        // Esta función podría necesitar ser adaptada para obtener datos de Xano también, si no están en Room
         return repository.getUserById(userId.toInt())
     }
 
@@ -73,12 +97,11 @@ class AuthViewModel @Inject constructor(
                 _authState.value = AuthState.Loading
                 Log.d(TAG, "updateUserInterests: AuthState set to Loading")
 
-                // Obtener el usuario actual, actualizarlo y guardarlo
                 val userToUpdate = _currentUser.value
                 if (userToUpdate != null && userToUpdate.id == userId) {
                     val updatedUser = userToUpdate.copy(interests = interests)
-                    repository.updateUser(updatedUser) // <-- LLAMADA CORREGIDA
-                    _currentUser.value = updatedUser // Actualizar estado local
+                    repository.updateUser(updatedUser)
+                    _currentUser.value = updatedUser
                     _authState.value = AuthState.Success
                     Log.d(TAG, "updateUserInterests: User updated successfully in DB and locally.")
                 } else {
@@ -106,63 +129,67 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun register(email: String, password: String, username: String) {
+    fun register(email: String, password: String, name: String) { // Ahora name en lugar de username
         viewModelScope.launch {
-            Log.d(TAG, "Register attempt for: $email, $username")
+            Log.d(TAG, "Register attempt for: $email, $name")
             try {
                 _authState.value = AuthState.Loading
-                Log.d(TAG, "Register: AuthState set to Loading")
 
-                if (username.isBlank() || email.isBlank() || password.isBlank()) {
+                if (name.isBlank() || email.isBlank() || password.isBlank()) {
                     _authState.value = AuthState.Error("Todos los campos son obligatorios")
-                    Log.d(TAG, "Register: Validation Error: ${_authState.value}")
                     return@launch
                 }
                 if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
                     _authState.value = AuthState.Error("El formato del email no es válido")
-                    Log.d(TAG, "Register: Validation Error: ${_authState.value}")
                     return@launch
                 }
                 if (password.length < 6) {
                     _authState.value = AuthState.Error("La contraseña debe tener al menos 6 caracteres")
-                    Log.d(TAG, "Register: Validation Error: ${_authState.value}")
                     return@launch
                 }
 
-                val existingUser = repository.getUserByUsername(username)
-                if (existingUser != null) {
-                    _authState.value = AuthState.Error("El nombre de usuario ya está en uso")
-                    Log.d(TAG, "Register: Validation Error: ${_authState.value}")
-                    return@launch
-                }
-                 val existingUserEmail = repository.getUserByEmail(email)
-                if (existingUserEmail != null) {
-                    _authState.value = AuthState.Error("El email ya está registrado")
-                    Log.d(TAG, "Register: Validation Error: ${_authState.value}")
-                    return@launch
-                }
+                // === Llamada a la API de Xano para el registro ===
+                val request = SignupRequest(name = name, email = email, password = password)
+                val response = apiService.signup(request)
 
-                val hashedPassword = BCrypt.withDefaults().hashToString(12, password.toCharArray())
-                Log.d(TAG, "Register: Password hashed.")
+                if (response.isSuccessful) {
+                    val authResponse = response.body()
+                    if (authResponse != null) {
+                        val xanoUserId = authResponse.userId
+                        val authToken = authResponse.authToken
 
-                val newUser = User(
-                    username = username,
-                    email = email,
-                    password = hashedPassword
-                )
+                        // Obtener los detalles completos del usuario de Xano usando el token recién adquirido
+                        val userDetailsResponse = apiService.getAuthUser("Bearer $authToken")
+                        if (userDetailsResponse.isSuccessful) {
+                            val xanoUser = userDetailsResponse.body()
+                            if (xanoUser != null) {
+                                // Mapear UserDto a User (entidad de Room) para compatibilidad local
+                                val localUser = User(id = xanoUser.id, name = xanoUser.name, email = xanoUser.email, passwordHash = "", profileImageUri = null, interests = null) // TODO: Ajustar mapeo completo
+                                
+                                // Guardar en Room si es necesario (ej. para caché offline o datos adicionales)
+                                val userId = repository.registerUser(localUser)
+                                Log.d(TAG, "Register: User registered locally with ID: $userId")
 
-                val userId = repository.registerUser(newUser)
-                Log.d(TAG, "Register: User registered with ID: $userId")
-
-                if (userId > 0) {
-                    val registeredUser = newUser.copy(id = userId.toInt())
-                    _currentUser.value = registeredUser
-                    _authState.value = AuthState.Success
-                    saveUserSession(registeredUser.id) // Guardar sesión
-                    Log.d(TAG, "Register: AuthState set to Success. Current User: ${_currentUser.value?.username}")
+                                _currentUser.value = localUser.copy(id = userId.toInt()) // Actualizar el ID si Room lo autogeneró
+                                _authState.value = AuthState.Success
+                                saveUserSession(_currentUser.value!!.id, authToken) // Guardar sesión y token
+                                Log.d(TAG, "Register: AuthState set to Success. Current User: ${_currentUser.value?.name}")
+                            } else {
+                                _authState.value = AuthState.Error("Detalles de usuario de Xano nulos después del registro.")
+                                Log.e(TAG, "Register: Xano user details are null after signup.")
+                                clearUserSession()
+                            }
+                        } else {
+                            _authState.value = AuthState.Error("Error al obtener detalles del usuario de Xano después del registro.")
+                            Log.e(TAG, "Register: Failed to get user details from Xano after signup: ${userDetailsResponse.code()} ${userDetailsResponse.message()}")
+                            clearUserSession()
+                        }
+                    } else {
+                        _authState.value = AuthState.Error("Respuesta de registro vacía")
+                    }
                 } else {
-                    _authState.value = AuthState.Error("Error al registrar usuario")
-                    Log.e(TAG, "Register: Failed to register user. AuthState: ${_authState.value}")
+                    _authState.value = AuthState.Error(response.errorBody()?.string() ?: "Error de registro")
+                    Log.e(TAG, "Register: Xano signup failed: ${response.code()} ${response.errorBody()?.string()}")
                 }
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(e.message ?: "Error desconocido")
@@ -176,30 +203,64 @@ class AuthViewModel @Inject constructor(
             Log.d(TAG, "Login attempt for: $email")
             try {
                 _authState.value = AuthState.Loading
-                Log.d(TAG, "Login: AuthState set to Loading")
 
                 if (email.isBlank() || password.isBlank()) {
                     _authState.value = AuthState.Error("Email y contraseña son obligatorios")
-                    Log.d(TAG, "Login: Validation Error: ${_authState.value}")
                     return@launch
                 }
                  if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
                     _authState.value = AuthState.Error("El formato del email no es válido")
-                    Log.d(TAG, "Login: Validation Error: ${_authState.value}")
                     return@launch
                 }
 
-                val user = repository.getUserByEmail(email)
-                Log.d(TAG, "Login: User fetched from DB: ${user?.username ?: "null"}")
+                // === Llamada a la API de Xano para el login ===
+                val request = LoginRequest(email = email, password = password)
+                val response = apiService.login(request)
 
-                if (user != null && BCrypt.verifyer().verify(password.toCharArray(), user.password.toCharArray()).verified) {
-                    _currentUser.value = user
-                    _authState.value = AuthState.Success
-                    saveUserSession(user.id) // Guardar sesión
-                    Log.d(TAG, "Login: AuthState set to Success. Current User: ${_currentUser.value?.username}")
+                if (response.isSuccessful) {
+                    val authResponse = response.body()
+                    if (authResponse != null) {
+                        val xanoUserId = authResponse.userId
+                        val authToken = authResponse.authToken
+
+                        // Obtener los detalles completos del usuario de Xano usando el token recién adquirido
+                        val userDetailsResponse = apiService.getAuthUser("Bearer $authToken")
+                        if (userDetailsResponse.isSuccessful) {
+                            val xanoUser = userDetailsResponse.body()
+                            if (xanoUser != null) {
+                                // Mapear UserDto a User (entidad de Room) para compatibilidad local
+                                val localUser = User(id = xanoUser.id, name = xanoUser.name, email = xanoUser.email, passwordHash = "", profileImageUri = null, interests = null) // TODO: Ajustar mapeo completo
+
+                                // Opcional: Actualizar usuario en Room si ya existe, o insertarlo
+                                // Podrías tener una función upsertUser en tu DAO
+                                val existingLocalUser = repository.getUserByEmail(email)
+                                if (existingLocalUser != null) {
+                                    repository.updateUser(localUser.copy(id = existingLocalUser.id))
+                                    _currentUser.value = localUser.copy(id = existingLocalUser.id)
+                                } else {
+                                    val userId = repository.registerUser(localUser)
+                                    _currentUser.value = localUser.copy(id = userId.toInt())
+                                }
+
+                                _authState.value = AuthState.Success
+                                saveUserSession(_currentUser.value!!.id, authToken) // Guardar sesión y token
+                                Log.d(TAG, "Login: AuthState set to Success. Current User: ${_currentUser.value?.name}")
+                            } else {
+                                _authState.value = AuthState.Error("Detalles de usuario de Xano nulos después del login.")
+                                Log.e(TAG, "Login: Xano user details are null after login.")
+                                clearUserSession()
+                            }
+                        } else {
+                            _authState.value = AuthState.Error("Error al obtener detalles del usuario de Xano después del login.")
+                            Log.e(TAG, "Login: Failed to get user details from Xano after login: ${userDetailsResponse.code()} ${userDetailsResponse.message()}")
+                            clearUserSession()
+                        }
+                    } else {
+                        _authState.value = AuthState.Error("Respuesta de login vacía")
+                    }
                 } else {
-                    _authState.value = AuthState.Error("Email o contraseña incorrectos")
-                    Log.d(TAG, "Login: Failed. AuthState: ${_authState.value}")
+                    _authState.value = AuthState.Error(response.errorBody()?.string() ?: "Error de login")
+                    Log.e(TAG, "Login: Xano login failed: ${response.code()} ${response.errorBody()?.string()}")
                 }
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(e.message ?: "Error desconocido")
@@ -210,7 +271,7 @@ class AuthViewModel @Inject constructor(
 
     fun logout() {
         viewModelScope.launch {
-            clearUserSession() // Limpiar sesión de DataStore
+            clearUserSession() // Limpiar sesión de DataStore y token
             _currentUser.value = null
             _authState.value = AuthState.Idle
             Log.d(TAG, "Logout: Current User set to null. AuthState set to Idle")
@@ -222,17 +283,19 @@ class AuthViewModel @Inject constructor(
         Log.d(TAG, "resetAuthState: AuthState reset to Idle")
     }
 
-    private suspend fun saveUserSession(userId: Int) {
+    private suspend fun saveUserSession(userId: Int, authToken: String) {
         dataStore.edit { preferences ->
             preferences[USER_ID_KEY] = userId
-            Log.d(TAG, "saveUserSession: User ID $userId saved to DataStore.")
+            preferences[AUTH_TOKEN_KEY] = authToken
+            Log.d(TAG, "saveUserSession: User ID $userId and Auth Token saved to DataStore.")
         }
     }
 
     private suspend fun clearUserSession() {
         dataStore.edit { preferences ->
             preferences.remove(USER_ID_KEY)
-            Log.d(TAG, "clearUserSession: User session cleared from DataStore.")
+            preferences.remove(AUTH_TOKEN_KEY)
+            Log.d(TAG, "clearUserSession: User session and Auth Token cleared from DataStore.")
         }
     }
 }

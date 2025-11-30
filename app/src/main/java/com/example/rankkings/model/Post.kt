@@ -12,7 +12,7 @@ data class Post(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val userId: String, // ID del usuario que creó el post
-    val username: String, // Nombre del usuario
+    val name: String, // Nombre del usuario (cambiado de username a name)
     val title: String, // Título del ranking
     val description: String, // Descripción del ranking
     val timestamp: Long = System.currentTimeMillis(), // Fecha de creación

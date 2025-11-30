@@ -24,10 +24,10 @@ import com.example.rankkings.ui.theme.Gold
 @Composable
 fun RegisterScreen(
     onNavigateToLogin: () -> Unit,
-    onNavigateToHome: () -> Unit, // Aunque no se usará directamente para la navegación aquí, se mantiene por si hay lógica adicional
+    onNavigateToHome: () -> Unit,
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
-    var username by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") } // CAMBIO AQUÍ
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -37,7 +37,7 @@ fun RegisterScreen(
     LaunchedEffect(authState) {
         if (authState is AuthState.Success) {
             authViewModel.resetAuthState()
-            onNavigateToHome() // <-- RESTAURADO: Navegar a Home después del registro exitoso
+            onNavigateToHome()
         }
     }
 
@@ -60,8 +60,8 @@ fun RegisterScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
         OutlinedTextField(
-            value = username,
-            onValueChange = { username = it },
+            value = name, // CAMBIO AQUÍ
+            onValueChange = { name = it }, // CAMBIO AQUÍ
             label = { Text("Nombre de usuario") },
             leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
             modifier = Modifier.fillMaxWidth(),
@@ -131,7 +131,7 @@ fun RegisterScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            onClick = { authViewModel.register(email, password, username) },
+            onClick = { authViewModel.register(email, password, name) }, // CAMBIO AQUÍ
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),

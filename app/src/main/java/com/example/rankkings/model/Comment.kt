@@ -12,7 +12,7 @@ data class Comment(
     val id: Int = 0,
     val postId: Int, // ID del post comentado
     val userId: Int, // ID del usuario que comentó
-    val username: String, // Nombre del usuario
+    val name: String, // Nombre del usuario (cambiado de username)
     val content: String, // Contenido del comentario
     val timestamp: Long = System.currentTimeMillis() // Fecha del comentario
 )
