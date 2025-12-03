@@ -11,8 +11,8 @@ import androidx.room.PrimaryKey
 data class Post(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val userId: String, // ID del usuario que creó el post
-    val name: String, // Nombre del usuario (cambiado de username a name)
+    val userId: Int, // CAMBIO AQUÍ: ID del usuario que creó el post (de String a Int)
+    val name: String, // Nombre del usuario
     val title: String, // Título del ranking
     val description: String, // Descripción del ranking
     val timestamp: Long = System.currentTimeMillis(), // Fecha de creación

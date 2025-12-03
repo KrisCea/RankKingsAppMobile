@@ -14,6 +14,10 @@ interface PostDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPost(post: Post): Long
 
+    // Insertar una lista de posts
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(posts: List<Post>)
+
     // Obtener todos los posts ordenados por fecha
     @Query("SELECT * FROM posts ORDER BY timestamp DESC")
     fun getAllPosts(): Flow<List<Post>>
@@ -33,6 +37,10 @@ interface PostDao {
     // Eliminar un post
     @Delete
     suspend fun deletePost(post: Post)
+
+    // Eliminar todos los posts
+    @Query("DELETE FROM posts")
+    suspend fun deleteAllPosts()
 
     // Actualizar contador de likes
     @Query("UPDATE posts SET likesCount = :count, isLiked = :isLiked WHERE id = :postId")

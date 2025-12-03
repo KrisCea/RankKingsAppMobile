@@ -2,6 +2,8 @@ package com.example.rankkings.network
 
 import com.example.rankkings.model.AuthResponse
 import com.example.rankkings.model.LoginRequest
+import com.example.rankkings.model.Post
+import com.example.rankkings.model.PostRequest
 import com.example.rankkings.model.SignupRequest
 import com.example.rankkings.model.UserDto
 import retrofit2.Response
@@ -42,4 +44,11 @@ interface ApiService {
 
     @PATCH("user/{user_id}")
     suspend fun editUser(@Path("user_id") userId: Int, @Body user: UserDto): Response<UserDto>
+
+    // Post Endpoints
+    @GET("post")
+    suspend fun getPosts(): Response<List<Post>>
+
+    @POST("post")
+    suspend fun createPost(@Body request: PostRequest): Response<Post>
 }

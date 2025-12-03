@@ -1,5 +1,6 @@
 package com.example.rankkings.repository
 
+import androidx.room.Transaction
 import com.example.rankkings.model.Album
 import com.example.rankkings.model.Comment
 import com.example.rankkings.model.Post
@@ -53,6 +54,12 @@ class Repository @Inject constructor(
 
     suspend fun createPost(post: Post): Long {
         return postDao.insertPost(post)
+    }
+
+    @Transaction
+    suspend fun refreshPosts(posts: List<Post>) {
+        postDao.deleteAllPosts()
+        postDao.insertAll(posts)
     }
 
     fun getAllPosts(): Flow<List<Post>> {
