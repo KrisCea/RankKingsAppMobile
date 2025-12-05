@@ -123,7 +123,7 @@ fun AppNavigation(
                     navController.navigate(Screen.PostDetail.createRoute(postId))
                 },
                 onNavigateToProfile = { userId ->
-                    navController.navigate(Screen.Profile.createRoute(userId))
+                    navController.navigate(Screen.Profile.createRoute(userId.toString()))
                 },
                 onNavigateToSaved = {
                     navController.navigate(Screen.Saved.route)

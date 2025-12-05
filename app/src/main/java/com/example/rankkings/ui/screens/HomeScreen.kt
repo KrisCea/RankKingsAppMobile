@@ -19,29 +19,26 @@ import com.example.rankkings.ui.components.RankkingsTopBar
 import com.example.rankkings.viewmodel.AuthViewModel
 import com.example.rankkings.viewmodel.PostViewModel
 import com.example.rankkings.ui.viewmodel.UserViewModel
-import com.example.rankkings.model.UserDto
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToCreatePost: () -> Unit,
     onNavigateToPostDetail: (Int) -> Unit,
-    onNavigateToProfile: (String?) -> Unit,
+    onNavigateToProfile: (Int?) -> Unit,   // 🔥 ahora recibe Int?
     onNavigateToSaved: () -> Unit,
     onNavigateToLogin: () -> Unit,
     postViewModel: PostViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
-    userViewModel: UserViewModel = hiltViewModel() // Inyectar UserViewModel
+    userViewModel: UserViewModel = hiltViewModel()
 ) {
     val posts by postViewModel.posts.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
     val isLoggedIn = currentUser != null
 
-    // Obtener la lista de usuarios de Xano
     val users by userViewModel.users.collectAsState()
     val errorMessage by userViewModel.errorMessage.collectAsState()
 
-    // Llamar a la API cuando el Composable se lanza por primera vez
     LaunchedEffect(Unit) {
         userViewModel.getAllUsers()
     }
@@ -53,9 +50,9 @@ fun HomeScreen(
                 selectedRoute = "home",
                 onNavigate = { route ->
                     when (route) {
-                        "profile" -> onNavigateToProfile(currentUser?.id?.toString())
+                        "profile" -> onNavigateToProfile(currentUser?.id)
                         "saved" -> onNavigateToSaved()
-                        "home" -> { /* Ya estamos en home */ }
+                        "home" -> {}
                     }
                 },
                 isLoggedIn = isLoggedIn,
@@ -71,8 +68,12 @@ fun HomeScreen(
         }
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
+
             if (posts.isEmpty()) {
-                Box(Modifier.fillMaxWidth().weight(1f), Alignment.Center) {
+                Box(
+                    Modifier.fillMaxWidth().weight(1f),
+                    Alignment.Center
+                ) {
                     Text("No hay posts aún. ¡Sé el primero!", textAlign = TextAlign.Center)
                 }
             } else {
@@ -94,12 +95,19 @@ fun HomeScreen(
                 }
             }
 
-            // --- Sección para mostrar usuarios de Xano ---
             Divider(modifier = Modifier.padding(vertical = 8.dp))
-            Text("Usuarios de Xano:", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 16.dp))
+            Text(
+                "Usuarios de Xano:",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
 
             if (errorMessage != null) {
-                Text(text = errorMessage!!, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp))
+                Text(
+                    text = errorMessage!!,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(16.dp)
+                )
             }
 
             if (users.isEmpty() && errorMessage == null) {
@@ -124,10 +132,9 @@ private fun PostCardWithAlbums(
     post: Post,
     postViewModel: PostViewModel,
     authViewModel: AuthViewModel,
-
     onNavigateToPostDetail: (Int) -> Unit,
     onNavigateToLogin: () -> Unit,
-    onNavigateToProfile: (String?) -> Unit
+    onNavigateToProfile: (Int?) -> Unit
 ) {
     val albums by postViewModel.getAlbumsForPost(post.id).collectAsState(initial = emptyList())
     val currentUser by authViewModel.currentUser.collectAsState()
@@ -144,7 +151,7 @@ private fun PostCardWithAlbums(
         onSaveClick = {
             if (isLoggedIn) postViewModel.toggleSave(post) else onNavigateToLogin()
         },
-        onProfileClick = { onNavigateToProfile(post.userId) },
+        onProfileClick = { onNavigateToProfile(post.userId) }, // 🔥 ahora pasa Int
         isLoggedIn = isLoggedIn
     )
 }

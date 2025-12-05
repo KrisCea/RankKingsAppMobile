@@ -4,7 +4,7 @@ import com.google.gson.annotations.SerializedName
 
 data class PostRequest(
     @SerializedName("userId")
-    val userId: String,
+    val userId: Int,
     @SerializedName("name")
     val name: String,
     @SerializedName("title")

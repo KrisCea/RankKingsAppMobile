@@ -6,7 +6,6 @@ import com.example.rankkings.model.Album
 import com.example.rankkings.model.Comment
 import com.example.rankkings.model.Post
 import com.example.rankkings.model.PostRequest
-import com.example.rankkings.model.UserDto
 import com.example.rankkings.network.ApiService
 import com.example.rankkings.repository.Repository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,12 +17,12 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import javax.inject.Named // Importar @Named
+import javax.inject.Named
 
 @HiltViewModel
 class PostViewModel @Inject constructor(
-    private val repository: Repository, // Para operaciones locales (Room)
-    @Named("UserApiService") private val apiService: ApiService // Para operaciones de Posts con Xano
+    private val repository: Repository,
+    @Named("UserApiService") private val apiService: ApiService
 ) : ViewModel() {
 
     private val _posts = MutableStateFlow<List<Post>>(emptyList())
@@ -51,21 +50,24 @@ class PostViewModel @Inject constructor(
     fun loadAllPosts() {
         viewModelScope.launch {
             _uiState.value = PostUiState.Loading
+
             try {
                 val response = apiService.getPosts()
                 if (response.isSuccessful) {
                     val postsFromApi = response.body() ?: emptyList()
-                    repository.refreshPosts(postsFromApi) // Actualizar la base de datos local
-                    _uiState.value = PostUiState.Idle // Reiniciar el estado UI a Idle después de cargar
+                    repository.refreshPosts(postsFromApi)
+                    _uiState.value = PostUiState.Idle
                 } else {
-                    _uiState.value = PostUiState.Error(response.errorBody()?.string() ?: "Error al cargar posts de la API")
+                    _uiState.value = PostUiState.Error(
+                        response.errorBody()?.string() ?: "Error al cargar posts"
+                    )
                 }
             } catch (e: Exception) {
-                _uiState.value = PostUiState.Error(e.message ?: "Error desconocido al cargar posts")
+                _uiState.value = PostUiState.Error(e.message ?: "Error desconocido")
             }
-            // Observar siempre la base de datos local
+
             repository.getAllPosts()
-                .catch { e -> _uiState.value = PostUiState.Error(e.message ?: "Error al observar posts de la DB") }
+                .catch { e -> _uiState.value = PostUiState.Error(e.message ?: "Error DB") }
                 .collect { _posts.value = it }
         }
     }
@@ -76,26 +78,23 @@ class PostViewModel @Inject constructor(
             try {
                 val response = apiService.getPosts()
                 if (response.isSuccessful) {
-                    val allPostsFromApi = response.body() ?: emptyList()
-                    val userPosts = allPostsFromApi.filter { it.userId == userId }
-                    _userPosts.value = userPosts // Actualizar el StateFlow de posts de usuario
+                    val allPosts = response.body() ?: emptyList()
+                    _userPosts.value = allPosts.filter { it.userId == userId }
                     _uiState.value = PostUiState.Idle
                 } else {
-                    _uiState.value = PostUiState.Error(response.errorBody()?.string() ?: "Error al cargar posts de usuario de la API")
+                    _uiState.value = PostUiState.Error("Error al cargar posts del usuario")
                 }
             } catch (e: Exception) {
-                _uiState.value = PostUiState.Error(e.message ?: "Error desconocido al cargar posts de usuario")
+                _uiState.value = PostUiState.Error(e.message ?: "Error desconocido")
             }
         }
     }
 
     suspend fun getPostById(postId: Int): Post? {
-        // TODO: Podrías querer obtener este de la API en el futuro
         return repository.getPostById(postId)
     }
 
     fun getAlbumsForPost(postId: Int): Flow<List<Album>> {
-        // TODO: Podrías querer obtener estos de la API en el futuro
         return repository.getAlbumsByPostId(postId)
     }
 
@@ -108,95 +107,102 @@ class PostViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             _uiState.value = PostUiState.Loading
+
             if (title.isBlank() || albums.isEmpty()) {
-                _uiState.value = PostUiState.Error("El título y al menos un álbum son obligatorios")
+                _uiState.value =
+                    PostUiState.Error("El título y al menos un álbum son obligatorios")
                 return@launch
             }
+
             try {
-                // === LLAMADA A LA API DE XANO para crear el post ===
                 val postRequest = PostRequest(
-                    userId = userId, // Ya es Int
+                    userId = userId,   // <-- userId como INT (correcto)
                     name = name,
                     title = title,
                     description = description
                 )
+
                 val response = apiService.createPost(postRequest)
 
                 if (response.isSuccessful) {
                     val createdPost = response.body()
+
                     if (createdPost != null) {
-                        // Aquí, Xano debería devolver el Post creado con su ID
-                        // Insertar el post creado en la base de datos local de Room
                         repository.createPost(createdPost)
 
-                        // Asociar los álbumes con el ID del post recién creado y guardarlos localmente
-                        val albumsWithPostId = albums.map { it.copy(postId = createdPost.id) }
+                        val albumsWithPostId =
+                            albums.map { it.copy(postId = createdPost.id) }
+
                         repository.insertAlbums(albumsWithPostId)
 
-                        _uiState.value = PostUiState.Success("Post creado exitosamente en Xano")
-                        loadAllPosts() // Recargar todos los posts para reflejar el nuevo post en la UI
+                        _uiState.value = PostUiState.Success("Post creado exitosamente")
+                        loadAllPosts()
                     } else {
-                        _uiState.value = PostUiState.Error("Respuesta de la API de posts vacía")
+                        _uiState.value =
+                            PostUiState.Error("La API devolvió un post vacío")
                     }
+
                 } else {
-                    _uiState.value = PostUiState.Error(response.errorBody()?.string() ?: "Error al crear post en Xano")
+                    _uiState.value = PostUiState.Error(
+                        response.errorBody()?.string() ?: "Error en la API"
+                    )
                 }
+
             } catch (e: Exception) {
-                _uiState.value = PostUiState.Error(e.message ?: "Error desconocido al crear post")
+                _uiState.value =
+                    PostUiState.Error(e.message ?: "Error desconocido al crear post")
             }
         }
     }
 
     fun loadPostAlbums(postId: Int) {
         viewModelScope.launch {
-            // TODO: Podrías querer cargar estos de la API en el futuro
             repository.getAlbumsByPostId(postId)
-                .catch { e -> _uiState.value = PostUiState.Error(e.message ?: "Error al cargar álbumes") }
+                .catch { e -> _uiState.value = PostUiState.Error(e.message ?: "Error álbumes") }
                 .collect { _postAlbums.value = it }
         }
     }
 
     fun toggleLike(post: Post) {
         viewModelScope.launch {
-            // TODO: Implementar interacción con la API de Xano para likes
             repository.toggleLike(post)
         }
     }
 
     fun toggleSave(post: Post) {
         viewModelScope.launch {
-            // TODO: Implementar interacción con la API de Xano para guardar posts
-            val newSaveStatus = !post.isSaved
+            val newStatus = !post.isSaved
             repository.toggleSave(post)
-            if (newSaveStatus) {
-                _snackbarEvent.emit("Añadido a guardados")
-            } else {
-                _snackbarEvent.emit("Eliminado de guardados")
-            }
+
+            _snackbarEvent.emit(
+                if (newStatus) "Añadido a guardados" else "Eliminado de guardados"
+            )
         }
     }
 
     fun loadComments(postId: Int) {
         viewModelScope.launch {
-            // TODO: Podrías querer cargar estos de la API en el futuro
             repository.getCommentsByPostId(postId)
-                .catch { e -> _uiState.value = PostUiState.Error(e.message ?: "Error al cargar comentarios") }
+                .catch { e -> _uiState.value = PostUiState.Error(e.message ?: "Error comentarios") }
                 .collect { _postComments.value = it }
         }
     }
 
     fun addComment(postId: Int, userId: Int, name: String, content: String) {
+        if (content.isBlank()) return
         viewModelScope.launch {
-            if (content.isBlank()) return@launch
-            // TODO: Implementar interacción con la API de Xano para añadir comentarios
-            val comment = Comment(postId = postId, userId = userId, name = name, content = content)
+            val comment = Comment(
+                postId = postId,
+                userId = userId,
+                name = name,
+                content = content
+            )
             repository.addComment(comment)
         }
     }
 
     fun deletePost(post: Post) {
         viewModelScope.launch {
-            // TODO: Implementar interacción con la API de Xano para eliminar posts
             repository.deletePost(post)
         }
     }

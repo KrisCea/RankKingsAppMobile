@@ -2,7 +2,7 @@ package com.example.rankkings.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.* 
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -11,13 +11,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
-import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -29,9 +27,6 @@ import com.example.rankkings.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
 
-/**
- * Card que muestra un post completo con sus álbumes e interacciones
- */
 @Composable
 fun PostCard(
     post: Post,
@@ -40,7 +35,7 @@ fun PostCard(
     onLikeClick: () -> Unit = {},
     onCommentClick: () -> Unit = {},
     onSaveClick: () -> Unit = {},
-    onProfileClick: (String) -> Unit = {},
+    onProfileClick: (Int) -> Unit = {},   // 🔥 ahora recibe Int
     isLoggedIn: Boolean = false
 ) {
     Card(
@@ -49,9 +44,7 @@ fun PostCard(
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .clickable(onClick = onPostClick),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = DarkCard
-        ),
+        colors = CardDefaults.cardColors(containerColor = DarkCard),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
@@ -59,17 +52,15 @@ fun PostCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Header del post (usuario, fecha)
             PostHeader(
-                name = post.name, // CAMBIO AQUÍ
-                userId = post.userId,
+                name = post.name,
+                userId = post.userId,   // 🔥 Int
                 timestamp = post.timestamp,
                 onProfileClick = onProfileClick
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Título y descripción
             Text(
                 text = post.title,
                 style = MaterialTheme.typography.titleLarge,
@@ -90,7 +81,6 @@ fun PostCard(
                 )
             }
 
-            // Preview de álbumes (scroll horizontal)
             if (albumImages.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
                 LazyRow(
@@ -104,7 +94,6 @@ fun PostCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Acciones (like, comentar, guardar)
             PostActions(
                 post = post,
                 onLikeClick = onLikeClick,
@@ -116,21 +105,17 @@ fun PostCard(
     }
 }
 
-/**
- * Header del post con info del usuario
- */
 @Composable
 private fun PostHeader(
-    name: String, // CAMBIO AQUÍ
-    userId: String,
+    name: String,
+    userId: Int,   // 🔥 antes String, ahora Int
     timestamp: Long,
-    onProfileClick: (String) -> Unit
+    onProfileClick: (Int) -> Unit
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.clickable(onClick = { onProfileClick(userId) })
     ) {
-        // Avatar placeholder
         Surface(
             modifier = Modifier.size(40.dp),
             shape = CircleShape,
@@ -149,7 +134,7 @@ private fun PostHeader(
 
         Column {
             Text(
-                text = name, // CAMBIO AQUÍ
+                text = name,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary
@@ -163,9 +148,6 @@ private fun PostHeader(
     }
 }
 
-/**
- * Preview de un álbum en el post
- */
 @Composable
 private fun AlbumPreviewItem(imageUri: String) {
     Card(
@@ -182,9 +164,6 @@ private fun AlbumPreviewItem(imageUri: String) {
     }
 }
 
-/**
- * Botones de acción del post
- */
 @Composable
 private fun PostActions(
     post: Post,
@@ -199,7 +178,7 @@ private fun PostActions(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            // Like
+
             ActionButton(
                 icon = if (post.isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                 count = post.likesCount,
@@ -208,7 +187,6 @@ private fun PostActions(
                 enabled = isLoggedIn
             )
 
-            // Comentarios
             ActionButton(
                 icon = Icons.Outlined.ChatBubbleOutline,
                 count = post.commentsCount,
@@ -217,7 +195,6 @@ private fun PostActions(
             )
         }
 
-        // Guardar
         if (isLoggedIn) {
             ActionButton(
                 icon = if (post.isSaved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
@@ -229,9 +206,6 @@ private fun PostActions(
     }
 }
 
-/**
- * Botón de acción con icono y contador
- */
 @Composable
 private fun ActionButton(
     icon: ImageVector,
@@ -261,9 +235,6 @@ private fun ActionButton(
     }
 }
 
-/**
- * Formatea el timestamp a texto legible
- */
 private fun formatTimestamp(timestamp: Long): String {
     val now = System.currentTimeMillis()
     val diff = now - timestamp
@@ -280,9 +251,6 @@ private fun formatTimestamp(timestamp: Long): String {
     }
 }
 
-/**
- * Formatea números grandes (1000+ = 1k)
- */
 private fun formatCount(count: Int): String {
     return when {
         count < 1000 -> count.toString()

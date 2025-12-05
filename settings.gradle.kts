@@ -7,9 +7,10 @@ pluginManagement {
 }
 
 dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
         google()
-        mavenCentral() // This is the crucial line for the BCrypt library
+        mavenCentral()
     }
 }
 
