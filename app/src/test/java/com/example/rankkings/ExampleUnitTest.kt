@@ -1,17 +1,24 @@
 package com.example.rankkings
 
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
-import org.junit.Assert.*
+class EmailValidatorTest {
 
-/**
- * Example local unit test, which will execute on the development machine (host).
- *
- * See [testing documentation](http://d.android.com/tools/testing).
- */
-class ExampleUnitTest {
+    private fun isValidEmail(email: String): Boolean {
+        return email.contains("@") && email.contains(".")
+    }
+
     @Test
-    fun addition_isCorrect() {
-        assertEquals(4, 2 + 2)
+    fun email_correcto_retorna_true() {
+        val result = isValidEmail("usuario@test.com")
+        assertTrue(result)
+    }
+
+    @Test
+    fun email_incorrecto_retorna_false() {
+        val result = isValidEmail("usuariotest")
+        assertFalse(result)
     }
 }

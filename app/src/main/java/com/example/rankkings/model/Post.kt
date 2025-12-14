@@ -1,5 +1,6 @@
 package com.example.rankkings.model
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -11,14 +12,21 @@ import androidx.room.PrimaryKey
 data class Post(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val userId: Int, // CAMBIO AQUÍ: ID del usuario que creó el post (de String a Int)
+
+    val userId: Int, // ID del usuario que creó el post
     val name: String, // Nombre del usuario
     val title: String, // Título del ranking
     val description: String, // Descripción del ranking
+
     val timestamp: Long = System.currentTimeMillis(), // Fecha de creación
+
     var likesCount: Int = 0, // Contador de likes
     var commentsCount: Int = 0, // Contador de comentarios
     var savesCount: Int = 0, // Contador de guardados
+
     var isLiked: Boolean = false, // Si el usuario actual dio like
-    var isSaved: Boolean = false // Si el usuario actual guardó el post
+    var isSaved: Boolean = false, // Si el usuario actual guardó el post
+
+    @ColumnInfo(name = "is_private")
+    val isPrivate: Boolean = false // 🔒 Post privado o público
 )

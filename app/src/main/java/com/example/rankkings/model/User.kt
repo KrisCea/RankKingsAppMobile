@@ -13,3 +13,5 @@ data class User(
     val profileImageUri: String? = null,
     val interests: List<String>? = null // Añadido para los intereses del usuario
 )
+
+
