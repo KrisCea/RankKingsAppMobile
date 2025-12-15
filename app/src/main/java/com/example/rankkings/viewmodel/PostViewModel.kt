@@ -84,4 +84,16 @@ class PostViewModel @Inject constructor(
             repository.deletePost(post)
         }
     }
+    private val _showTutorial = MutableStateFlow(true)
+    val showTutorial: StateFlow<Boolean> = _showTutorial.asStateFlow()
+
+    private val _tutorialText = MutableStateFlow(
+        "🔥 Desliza para ver los posts, vota con ❤️ y crea el tuyo con el botón +"
+    )
+    val tutorialText: StateFlow<String> = _tutorialText.asStateFlow()
+
+    fun closeTutorial() {
+        _showTutorial.value = false
+    }
 }
+

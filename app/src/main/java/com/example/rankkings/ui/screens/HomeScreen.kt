@@ -16,6 +16,7 @@ import com.example.rankkings.model.Post
 import com.example.rankkings.ui.components.PostCard
 import com.example.rankkings.ui.components.RankkingsBottomBar
 import com.example.rankkings.ui.components.RankkingsTopBar
+import com.example.rankkings.ui.components.TutorialBanner
 import com.example.rankkings.viewmodel.AuthViewModel
 import com.example.rankkings.viewmodel.PostViewModel
 
@@ -33,6 +34,8 @@ fun HomeScreen(
     val posts by postViewModel.posts.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState(initial = null)
     val isLoggedIn = currentUser != null
+    val showTutorial by postViewModel.showTutorial.collectAsState()
+    val tutorialText by postViewModel.tutorialText.collectAsState()
 
     Scaffold(
         topBar = {
@@ -65,6 +68,21 @@ fun HomeScreen(
             }
         }
     ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+
+            // TUTORIAL
+            if (showTutorial) {
+                TutorialBanner(
+                    text = tutorialText,
+                    onClose = { postViewModel.closeTutorial() }
+                )
+            }
+
+        }
 
         if (posts.isEmpty()) {
             Box(
@@ -98,6 +116,7 @@ fun HomeScreen(
                 }
             }
         }
+
     }
 }
 
