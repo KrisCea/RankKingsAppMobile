@@ -16,7 +16,7 @@ import com.example.rankkings.model.User
  */
 @Database(
     entities = [User::class, Post::class, Album::class, Comment::class],
-    version = 5, // <-- VERSIÓN INCREMENTADA
+    version = 8, // <-- VERSIÓN INCREMENTADA
     exportSchema = false
 )
 @TypeConverters(Converters::class)

@@ -10,9 +10,9 @@ import androidx.room.PrimaryKey
 data class Comment(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val postId: Int, // ID del post comentado
-    val userId: Int, // ID del usuario que comentó
-    val username: String, // Nombre del usuario
-    val content: String, // Contenido del comentario
-    val timestamp: Long = System.currentTimeMillis() // Fecha del comentario
+    val postId: Int,
+    val userId: Int,
+    val name: String,
+    val content: String,
+    val timestamp: Long = System.currentTimeMillis()
 )

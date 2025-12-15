@@ -1,17 +1,10 @@
 package com.example.rankkings.repository
 
-import com.example.rankkings.model.Album
-import com.example.rankkings.model.Comment
-import com.example.rankkings.model.Post
-import com.example.rankkings.model.User
+import com.example.rankkings.model.*
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Repositorio centralizado que coordina todas las operaciones de datos.
- * Actúa como única fuente de verdad para los ViewModels.
- */
 @Singleton
 class Repository @Inject constructor(
     private val userDao: UserDao,
@@ -20,67 +13,43 @@ class Repository @Inject constructor(
     private val commentDao: CommentDao
 ) {
 
-    // ============ OPERACIONES DE USUARIOS ============
+    /* ---------- USER ---------- */
 
-    suspend fun registerUser(user: User): Long {
-        return userDao.insertUser(user)
-    }
-
-    // Eliminamos la función 'loginUser' ya que la verificación de contraseña se hace en el ViewModel con BCrypt.
-
-    fun getUserById(userId: Int): Flow<User?> {
-        return userDao.getUserById(userId)
-    }
-
-    suspend fun getUserByUsername(username: String): User? {
-        return userDao.getUserByUsername(username)
-    }
-
-    suspend fun getUserByEmail(email: String): User? {
-        return userDao.getUserByEmail(email)
-    }
+    fun getUserById(userId: Int): Flow<User?> =
+        userDao.getUserById(userId)
 
     suspend fun updateUser(user: User) {
         userDao.updateUser(user)
     }
 
+    /* ---------- POSTS ---------- */
 
-    suspend fun updateUserProfileImage(userId: Int, imageUri: String) {
-        userDao.updateUserProfileImage(userId, imageUri)
-    }
+    fun getPublicPosts(): Flow<List<Post>> =
+        postDao.getPublicPosts()
 
-    // ============ OPERACIONES DE POSTS ============
+    fun getPostsByUserId(userId: Int): Flow<List<Post>> =
+        postDao.getPostsByUserId(userId)
 
-    suspend fun createPost(post: Post): Long {
-        return postDao.insertPost(post)
-    }
+    suspend fun getPostById(postId: Int): Post? =
+        postDao.getPostById(postId)
 
-    fun getAllPosts(): Flow<List<Post>> {
-        return postDao.getAllPosts()
-    }
-
-    fun getPostsByUserId(userId: Int): Flow<List<Post>> {
-        return postDao.getPostsByUserId(userId)
-    }
-
-    suspend fun getPostById(postId: Int): Post? {
-        return postDao.getPostById(postId)
-    }
+    suspend fun createPost(post: Post): Long =
+        postDao.insertPost(post)
 
     suspend fun toggleLike(post: Post) {
-        val newLikeStatus = !post.isLiked
-        val newCount = if (newLikeStatus) post.likesCount + 1 else post.likesCount - 1
-        postDao.updateLikes(post.id, newCount, newLikeStatus)
+        val liked = !post.isLiked
+        val count = if (liked) post.likesCount + 1 else post.likesCount - 1
+        postDao.updateLikes(post.id, count, liked)
     }
 
     suspend fun toggleSave(post: Post) {
-        val newSaveStatus = !post.isSaved
-        val newCount = if (newSaveStatus) post.savesCount + 1 else post.savesCount - 1
-        postDao.updateSaves(post.id, newCount, newSaveStatus)
+        val saved = !post.isSaved
+        val count = if (saved) post.savesCount + 1 else post.savesCount - 1
+        postDao.updateSaves(post.id, count, saved)
     }
 
-    suspend fun updatePost(post: Post) {
-        postDao.updatePost(post)
+    suspend fun togglePrivacy(post: Post) {
+        postDao.setPostPrivate(post.id, !post.isPrivate)
     }
 
     suspend fun deletePost(post: Post) {
@@ -89,35 +58,18 @@ class Repository @Inject constructor(
         postDao.deletePost(post)
     }
 
-    // ============ OPERACIONES DE ÁLBUMES ============
+    /* ---------- ALBUMS ---------- */
 
-    suspend fun insertAlbums(albums: List<Album>) {
-        albumDao.insertAlbums(albums)
-    }
+    fun getAlbumsByPostId(postId: Int): Flow<List<Album>> =
+        albumDao.getAlbumsByPostId(postId)
 
-    fun getAlbumsByPostId(postId: Int): Flow<List<Album>> {
-        return albumDao.getAlbumsByPostId(postId)
-    }
+    /* ---------- COMMENTS ---------- */
 
-    suspend fun getAlbumCount(postId: Int): Int {
-        return albumDao.getAlbumCountByPostId(postId)
-    }
+    fun getCommentsByPostId(postId: Int): Flow<List<Comment>> =
+        commentDao.getCommentsByPostId(postId)
 
-    // ============ OPERACIONES DE COMENTARIOS ============
-
-    suspend fun addComment(comment: Comment): Long {
-        val commentId = commentDao.insertComment(comment)
-        val count = commentDao.getCommentCountByPostId(comment.postId)
-        postDao.updateComments(comment.postId, count)
-        return commentId
-    }
-
-    fun getCommentsByPostId(postId: Int): Flow<List<Comment>> {
-        return commentDao.getCommentsByPostId(postId)
-    }
-
-    suspend fun deleteComment(comment: Comment) {
-        commentDao.deleteComment(comment)
+    suspend fun addComment(comment: Comment) {
+        commentDao.insertComment(comment)
         val count = commentDao.getCommentCountByPostId(comment.postId)
         postDao.updateComments(comment.postId, count)
     }
