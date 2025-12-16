@@ -43,14 +43,13 @@ fun PostDetailScreen(
 
     val posts by postViewModel.posts.collectAsState(initial = emptyList())
     val post: Post? = posts.find { it.id == postId }
+    val comments by postViewModel.comments.collectAsState()
 
-    val albums by postViewModel
-        .loadUserPosts(postId) // solo para forzar recomp, no se usa
-        .collectAsState(initial = emptyList())
+    LaunchedEffect(postId) {
+        postViewModel.loadComments(postId)
+    }
 
-    val comments by postViewModel
-        .loadUserPosts(postId) // comments no conectados aún → vacío
-        .collectAsState(initial = emptyList())
+
 
     var commentText by remember { mutableStateOf("") }
 

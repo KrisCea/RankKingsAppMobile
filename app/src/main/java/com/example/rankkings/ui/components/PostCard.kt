@@ -1,7 +1,6 @@
 package com.example.rankkings.ui.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -31,35 +30,32 @@ import java.util.*
 fun PostCard(
     post: Post,
     albumImages: List<String> = emptyList(),
-    onPostClick: () -> Unit = {},
-    onLikeClick: () -> Unit = {},
-    onCommentClick: () -> Unit = {},
-    onSaveClick: () -> Unit = {},
-    onProfileClick: (Int) -> Unit = {},   // 🔥 ahora recibe Int
-    isLoggedIn: Boolean = false
+    onPostClick: () -> Unit,
+    onLikeClick: () -> Unit,
+    onCommentClick: () -> Unit,
+    onSaveClick: () -> Unit,
+    onProfileClick: (Int) -> Unit,
+    isLoggedIn: Boolean
 ) {
     Card(
+        onClick = onPostClick, // ✅ CLICK SEGURO
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clickable(onClick = onPostClick),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = DarkCard),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+
             PostHeader(
                 name = post.name,
-                userId = post.userId,   // 🔥 Int
+                userId = post.userId,
                 timestamp = post.timestamp,
                 onProfileClick = onProfileClick
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(Modifier.height(12.dp))
 
             Text(
                 text = post.title,
@@ -71,7 +67,7 @@ fun PostCard(
             )
 
             if (post.description.isNotBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(Modifier.height(4.dp))
                 Text(
                     text = post.description,
                     style = MaterialTheme.typography.bodyMedium,
@@ -82,17 +78,15 @@ fun PostCard(
             }
 
             if (albumImages.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(12.dp))
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(albumImages.take(5)) { imageUri ->
-                        AlbumPreviewItem(imageUri = imageUri)
+                Spacer(Modifier.height(12.dp))
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(albumImages.take(5)) { image ->
+                        AlbumPreviewItem(image)
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(Modifier.height(12.dp))
 
             PostActions(
                 post = post,
@@ -105,48 +99,52 @@ fun PostCard(
     }
 }
 
+/* ---------------- HEADER ---------------- */
+
 @Composable
 private fun PostHeader(
     name: String,
-    userId: Int,   // 🔥 antes String, ahora Int
+    userId: Int,
     timestamp: Long,
     onProfileClick: (Int) -> Unit
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.clickable(onClick = { onProfileClick(userId) })
-    ) {
-        Surface(
-            modifier = Modifier.size(40.dp),
-            shape = CircleShape,
-            color = DarkSurface,
-            border = BorderStroke(2.dp, Gold)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = null,
-                tint = Gold,
-                modifier = Modifier.padding(8.dp)
-            )
-        }
+    IconButton(onClick = { onProfileClick(userId) }) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
 
-        Spacer(modifier = Modifier.width(12.dp))
+            Surface(
+                modifier = Modifier.size(40.dp),
+                shape = CircleShape,
+                color = DarkSurface,
+                border = BorderStroke(2.dp, Gold)
+            ) {
+                Icon(
+                    Icons.Default.Person,
+                    contentDescription = null,
+                    tint = Gold,
+                    modifier = Modifier.padding(8.dp)
+                )
+            }
 
-        Column {
-            Text(
-                text = name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary
-            )
-            Text(
-                text = formatTimestamp(timestamp),
-                style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary
-            )
+            Spacer(Modifier.width(12.dp))
+
+            Column {
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+                Text(
+                    text = formatTimestamp(timestamp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary
+                )
+            }
         }
     }
 }
+
+/* ---------------- ALBUM PREVIEW ---------------- */
 
 @Composable
 private fun AlbumPreviewItem(imageUri: String) {
@@ -157,12 +155,14 @@ private fun AlbumPreviewItem(imageUri: String) {
     ) {
         AsyncImage(
             model = imageUri,
-            contentDescription = "Álbum",
+            contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
     }
 }
+
+/* ---------------- ACTIONS ---------------- */
 
 @Composable
 private fun PostActions(
@@ -174,17 +174,17 @@ private fun PostActions(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
+
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
 
             ActionButton(
                 icon = if (post.isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                 count = post.likesCount,
                 tint = if (post.isLiked) LikeRed else TextSecondary,
-                onClick = onLikeClick,
-                enabled = isLoggedIn
+                enabled = isLoggedIn,
+                onClick = onLikeClick
             )
 
             ActionButton(
@@ -214,47 +214,33 @@ private fun ActionButton(
     onClick: () -> Unit,
     enabled: Boolean = true
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = Modifier.clickable(enabled = enabled, onClick = onClick)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(24.dp)
-        )
-        if (count != null && count > 0) {
-            Text(
-                text = formatCount(count),
-                style = MaterialTheme.typography.bodyMedium,
-                color = tint
-            )
+    IconButton(onClick = onClick, enabled = enabled) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = tint)
+            if (count != null && count > 0) {
+                Spacer(Modifier.width(4.dp))
+                Text(text = formatCount(count), color = tint)
+            }
         }
     }
 }
 
-private fun formatTimestamp(timestamp: Long): String {
-    val now = System.currentTimeMillis()
-    val diff = now - timestamp
+/* ---------------- HELPERS ---------------- */
 
+private fun formatTimestamp(timestamp: Long): String {
+    val diff = System.currentTimeMillis() - timestamp
     return when {
         diff < 60000 -> "Ahora"
         diff < 3600000 -> "${diff / 60000}m"
         diff < 86400000 -> "${diff / 3600000}h"
         diff < 604800000 -> "${diff / 86400000}d"
-        else -> {
-            val sdf = SimpleDateFormat("dd MMM", Locale("es", "ES"))
-            sdf.format(Date(timestamp))
-        }
+        else -> SimpleDateFormat("dd MMM", Locale("es", "ES")).format(Date(timestamp))
     }
 }
 
-private fun formatCount(count: Int): String {
-    return when {
+private fun formatCount(count: Int): String =
+    when {
         count < 1000 -> count.toString()
-        count < 1000000 -> "${count / 1000}k"
-        else -> "${count / 1000000}M"
+        count < 1_000_000 -> "${count / 1000}k"
+        else -> "${count / 1_000_000}M"
     }
-}

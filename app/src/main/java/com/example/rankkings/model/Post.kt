@@ -13,20 +13,22 @@ data class Post(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
 
-    val userId: Int, // ID del usuario que creó el post
-    val name: String, // Nombre del usuario
-    val title: String, // Título del ranking
-    val description: String, // Descripción del ranking
+    val userId: Int,
+    val name: String,
+    val title: String,
+    val description: String,
 
-    val timestamp: Long = System.currentTimeMillis(), // Fecha de creación
+    @ColumnInfo(name = "timestamp")
+    val timestamp: Long = System.currentTimeMillis(),
 
-    var likesCount: Int = 0, // Contador de likes
-    var commentsCount: Int = 0, // Contador de comentarios
-    var savesCount: Int = 0, // Contador de guardados
+    var likesCount: Int = 0,
+    var commentsCount: Int = 0,
+    var savesCount: Int = 0,
 
-    var isLiked: Boolean = false, // Si el usuario actual dio like
-    var isSaved: Boolean = false, // Si el usuario actual guardó el post
+    var isLiked: Boolean = false,
+    var isSaved: Boolean = false,
 
     @ColumnInfo(name = "is_private")
-    val isPrivate: Boolean = false // 🔒 Post privado o público
+    val isPrivate: Boolean = false
 )
+

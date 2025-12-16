@@ -23,12 +23,12 @@ import com.example.rankkings.viewmodel.PostViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SavedPostsScreen(
+    authViewModel: AuthViewModel,
     onNavigateToPostDetail: (Int) -> Unit,
     onNavigateToHome: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToLogin: () -> Unit,
     postViewModel: PostViewModel = hiltViewModel(), // Inyectar PostViewModel con Hilt
-    authViewModel: AuthViewModel = hiltViewModel() // Inyectar AuthViewModel con Hilt
 ) {
     val posts by postViewModel.posts.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState() // Obtener currentUser internamente
@@ -57,7 +57,10 @@ fun SavedPostsScreen(
         }
     ) { paddingValues ->
         if (!isLoggedIn) {
-            NotLoggedInPlaceholder(onNavigateToLogin = onNavigateToLogin)
+            NotLoggedInPlaceholder(
+                onNavigateToLogin = onNavigateToLogin,
+                modifier = Modifier.padding(paddingValues)
+            )
         } else if (savedPosts.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -93,7 +96,7 @@ fun SavedPostsScreen(
                 contentPadding = PaddingValues(vertical = 8.dp)
             ) {
                 items(savedPosts, key = { it.id }) { post ->
-                    val albums by postViewModel.getAlbumsForPost(post.id).collectAsState(initial = emptyList())
+                    val albums by postViewModel.getAlbumsByPost(post.id).collectAsState(initial = emptyList())
                     PostCard(
                         post = post,
                         albumImages = albums.map { it.albumImageUri },

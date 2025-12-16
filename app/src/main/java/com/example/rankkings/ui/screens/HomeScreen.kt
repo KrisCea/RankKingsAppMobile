@@ -23,13 +23,13 @@ import com.example.rankkings.viewmodel.PostViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    authViewModel: AuthViewModel,
     onNavigateToCreatePost: () -> Unit,
     onNavigateToPostDetail: (Int) -> Unit,
-    onNavigateToProfile: (Int?) -> Unit,
+    onNavigateToProfile: () -> Unit,
     onNavigateToSaved: () -> Unit,
     onNavigateToLogin: () -> Unit,
     postViewModel: PostViewModel = hiltViewModel(),
-    authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val posts by postViewModel.posts.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState(initial = null)
@@ -52,7 +52,7 @@ fun HomeScreen(
                 onNavigate = { route ->
                     when (route) {
                         "home" -> {}
-                        "profile" -> onNavigateToProfile(currentUser?.id)
+                        "profile" -> onNavigateToProfile()
                         "saved" -> onNavigateToSaved()
                     }
                 },
@@ -82,47 +82,41 @@ fun HomeScreen(
                 )
             }
 
-        }
-
-        if (posts.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    "No hay posts aún. ¡Sé el primero!",
-                    textAlign = TextAlign.Center
-                )
-            }
-        } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
+                modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(vertical = 8.dp)
             ) {
-                items(posts, key = { it.id }) { post ->
-                    PostCardWithAlbums(
-                        post = post,
-                        postViewModel = postViewModel,
-                        authViewModel = authViewModel,
-                        onNavigateToPostDetail = onNavigateToPostDetail,
-                        onNavigateToLogin = onNavigateToLogin,
-                        onNavigateToProfile = onNavigateToProfile
-                    )
+                if (posts.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillParentMaxSize() // Fill the whole LazyColumn
+                                .padding(bottom = 100.dp), // Adjust padding to center better
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "No hay posts aún. ¡Sé el primero!",
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                } else {
+                    items(posts, key = { it.id }) { post ->
+                        PostCardWithAlbums(
+                            post = post,
+                            postViewModel = postViewModel,
+                            authViewModel = authViewModel,
+                            onNavigateToPostDetail = onNavigateToPostDetail,
+                            onNavigateToLogin = onNavigateToLogin,
+                            onNavigateToProfile = { onNavigateToProfile() }
+                        )
+                    }
                 }
             }
         }
-
     }
 }
-
-/* -------------------------------------------------------------------------- */
-/*                         POST + ÁLBUMES (ITEM)                               */
-/* -------------------------------------------------------------------------- */
 
 @Composable
 fun PostCardWithAlbums(
@@ -131,10 +125,10 @@ fun PostCardWithAlbums(
     authViewModel: AuthViewModel,
     onNavigateToPostDetail: (Int) -> Unit,
     onNavigateToLogin: () -> Unit,
-    onNavigateToProfile: (Int?) -> Unit
+    onNavigateToProfile: () -> Unit
 ) {
     val albums by postViewModel
-        .getAlbumsForPost(post.id) // ✅ FUNCIÓN CORRECTA
+        .getAlbumsByPost(post.id) // Correct function name
         .collectAsState(initial = emptyList())
 
     val currentUser by authViewModel.currentUser.collectAsState(initial = null)
@@ -142,7 +136,7 @@ fun PostCardWithAlbums(
 
     PostCard(
         post = post,
-        albumImages = albums.map { it.albumImageUri }, // ✅ YA NO DA ERROR
+        albumImages = albums.map { it.albumImageUri },
         onPostClick = { onNavigateToPostDetail(post.id) },
         onLikeClick = {
             if (isLoggedIn) postViewModel.toggleLike(post)
@@ -153,8 +147,7 @@ fun PostCardWithAlbums(
             if (isLoggedIn) postViewModel.toggleSave(post)
             else onNavigateToLogin()
         },
-        onProfileClick = { onNavigateToProfile(post.userId) },
+        onProfileClick = { onNavigateToProfile() },
         isLoggedIn = isLoggedIn
     )
 }
-

@@ -1,13 +1,16 @@
 package com.example.rankkings.ui.navigation
 
-import android.util.Log
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.rankkings.ui.screens.*
 import com.example.rankkings.viewmodel.AuthViewModel
@@ -27,34 +30,23 @@ sealed class Screen(val route: String) {
 
 @Composable
 fun AppNavigation(
-    navController: NavHostController,
     modifier: Modifier = Modifier,
+    navController: NavHostController = rememberNavController(),
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val currentUser by authViewModel.currentUser.collectAsState()
     val isLoggedIn = currentUser != null
-
     val startDestination = if (isLoggedIn) Screen.Home.route else Screen.Login.route
-
-    LaunchedEffect(currentUser) {
-        if (currentUser != null) {
-            navController.navigate(Screen.Home.route) {
-                popUpTo(Screen.Login.route) { inclusive = true }
-            }
-        }
-    }
 
     NavHost(
         navController = navController,
         startDestination = startDestination,
         modifier = modifier
     ) {
-
         composable(Screen.Login.route) {
             LoginScreen(
-                onNavigateToRegister = {
-                    navController.navigate(Screen.Register.route)
-                },
+                authViewModel = authViewModel,
+                onNavigateToRegister = { navController.navigate(Screen.Register.route) },
                 onNavigateToHome = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
@@ -70,9 +62,8 @@ fun AppNavigation(
 
         composable(Screen.Register.route) {
             RegisterScreen(
-                onNavigateToLogin = {
-                    navController.navigate(Screen.Login.route)
-                },
+                authViewModel = authViewModel,
+                onNavigateToLogin = { navController.popBackStack() },
                 onNavigateToHome = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
@@ -83,31 +74,21 @@ fun AppNavigation(
 
         composable(Screen.Home.route) {
             HomeScreen(
-                onNavigateToCreatePost = {
-                    navController.navigate(Screen.CreatePost.route)
-                },
-                onNavigateToPostDetail = { postId ->
-                    navController.navigate(Screen.PostDetail.createRoute(postId))
-                },
-                onNavigateToProfile = {
-                    navController.navigate(Screen.Profile.route)
-                },
-                onNavigateToSaved = {
-                    navController.navigate(Screen.Saved.route)
-                },
-                onNavigateToLogin = {
-                    navController.navigate(Screen.Login.route)
-                }
+                authViewModel = authViewModel,
+                onNavigateToCreatePost = { navController.navigate(Screen.CreatePost.route) },
+                onNavigateToPostDetail = { navController.navigate(Screen.PostDetail.createRoute(it)) },
+                onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
+                onNavigateToSaved = { navController.navigate(Screen.Saved.route) },
+                onNavigateToLogin = { navController.navigate(Screen.Login.route) }
             )
         }
 
         composable(Screen.CreatePost.route) {
-            if (currentUser == null) {
-                LaunchedEffect(Unit) {
-                    navController.navigate(Screen.Login.route)
-                }
+            if (!isLoggedIn) {
+                LaunchedEffect(Unit) { navController.navigate(Screen.Login.route) }
             } else {
                 CreatePostScreen(
+                    authViewModel = authViewModel,
                     onNavigateBack = { navController.popBackStack() },
                     onPostCreated = { navController.popBackStack() }
                 )
@@ -116,21 +97,28 @@ fun AppNavigation(
 
         composable(Screen.Profile.route) {
             ProfileScreen(
-                onNavigateToLogin = {
-                    navController.navigate(Screen.Login.route)
-                },
-                onNavigateToHome = {
-                    navController.navigate(Screen.Home.route)
-                },
-                onNavigateToPostDetail = { postId ->
-                    navController.navigate(Screen.PostDetail.createRoute(postId))
-                },
-                onNavigateToSaved = {
-                    navController.navigate(Screen.Saved.route)
-                },
-                onNavigateToInterests = {
-                    navController.navigate(Screen.Interests.route)
-                }
+                authViewModel = authViewModel,
+                onNavigateToHome = { navController.navigate(Screen.Home.route) },
+                onNavigateToPostDetail = { navController.navigate(Screen.PostDetail.createRoute(it)) },
+                onNavigateToSaved = { navController.navigate(Screen.Saved.route) },
+                onNavigateToInterests = { navController.navigate(Screen.Interests.route) },
+                onNavigateToLogin = { navController.navigate(Screen.Login.route) }
+            )
+        }
+
+        composable(Screen.Saved.route) {
+            SavedPostsScreen(
+                authViewModel = authViewModel,
+                onNavigateToPostDetail = { navController.navigate(Screen.PostDetail.createRoute(it)) },
+                onNavigateToHome = { navController.navigate(Screen.Home.route) },
+                onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
+                onNavigateToLogin = { navController.navigate(Screen.Login.route) }
+            )
+        }
+
+        composable(Screen.Interests.route) {
+            InterestsScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
@@ -141,46 +129,10 @@ fun AppNavigation(
             val postId = it.arguments?.getInt("postId") ?: 0
             PostDetailScreen(
                 postId = postId,
+                authViewModel = authViewModel,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToLogin = {
-                    navController.navigate(Screen.Login.route)
-                }
+                onNavigateToLogin = { navController.navigate(Screen.Login.route) }
             )
-        }
-
-        composable(Screen.Saved.route) {
-            if (currentUser == null) {
-                LaunchedEffect(Unit) {
-                    navController.navigate(Screen.Login.route)
-                }
-            } else {
-                SavedPostsScreen(
-                    onNavigateToPostDetail = { postId ->
-                        navController.navigate(Screen.PostDetail.createRoute(postId))
-                    },
-                    onNavigateToHome = {
-                        navController.navigate(Screen.Home.route)
-                    },
-                    onNavigateToProfile = {
-                        navController.navigate(Screen.Profile.route)
-                    },
-                    onNavigateToLogin = {
-                        navController.navigate(Screen.Login.route)
-                    }
-                )
-            }
-        }
-
-        composable(Screen.Interests.route) {
-            if (currentUser == null) {
-                LaunchedEffect(Unit) {
-                    navController.navigate(Screen.Login.route)
-                }
-            } else {
-                InterestsScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
         }
     }
 }

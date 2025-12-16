@@ -1,5 +1,6 @@
 package com.example.rankkings.repository
 
+import androidx.room.Transaction
 import com.example.rankkings.model.*
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -33,8 +34,22 @@ class Repository @Inject constructor(
     suspend fun getPostById(postId: Int): Post? =
         postDao.getPostById(postId)
 
-    suspend fun createPost(post: Post): Long =
-        postDao.insertPost(post)
+    /**
+     * 🔒 CREA POST + ÁLBUMES EN UNA SOLA TRANSACCIÓN
+     */
+    @Transaction
+    suspend fun createPostWithAlbums(
+        post: Post,
+        albums: List<Album>
+    ) {
+        val postId = postDao.insertPost(post).toInt()
+
+        val albumsWithPostId = albums.map {
+            it.copy(postId = postId)
+        }
+
+        albumDao.insertAlbums(albumsWithPostId)
+    }
 
     suspend fun toggleLike(post: Post) {
         val liked = !post.isLiked

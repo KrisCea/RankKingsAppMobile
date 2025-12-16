@@ -17,8 +17,9 @@ interface PostDao {
     suspend fun insertAll(posts: List<Post>)
 
     // 🔓 SOLO POSTS PÚBLICOS
-    @Query("SELECT * FROM posts WHERE is_private = 0 ORDER BY timestamp DESC")
+    @Query("SELECT * FROM posts WHERE IFNULL(is_private, 0) = 0 ORDER BY timestamp DESC")
     fun getPublicPosts(): Flow<List<Post>>
+
 
     // 👤 POSTS DEL USUARIO (INCLUYE PRIVADOS)
     @Query("SELECT * FROM posts WHERE userId = :userId ORDER BY timestamp DESC")

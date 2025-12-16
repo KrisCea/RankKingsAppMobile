@@ -27,33 +27,21 @@ import com.example.rankkings.ui.components.RankkingsBottomBar
 import com.example.rankkings.ui.components.RankkingsTopBar
 import com.example.rankkings.viewmodel.AuthViewModel
 import com.example.rankkings.viewmodel.PostViewModel
+import kotlinx.coroutines.flow.flowOf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
+    authViewModel: AuthViewModel,
     onNavigateToLogin: () -> Unit,
     onNavigateToHome: () -> Unit,
     onNavigateToPostDetail: (Int) -> Unit,
     onNavigateToSaved: () -> Unit,
     onNavigateToInterests: () -> Unit,
     postViewModel: PostViewModel = hiltViewModel(),
-    authViewModel: AuthViewModel = hiltViewModel()
 ) {
 
     val currentUser by authViewModel.currentUser.collectAsState(initial = null)
-    val isLoggedIn = currentUser != null
-
-    if (!isLoggedIn) {
-        NotLoggedInPlaceholder(onNavigateToLogin)
-        return
-    }
-
-    val user = currentUser!!
-
-    // ✅ USO CORRECTO DEL VIEWMODEL
-    val userPosts by postViewModel
-        .loadUserPosts(user.id)
-        .collectAsState(initial = emptyList())
 
     Scaffold(
         topBar = { RankkingsTopBar(title = "Mi Perfil") },
@@ -66,11 +54,26 @@ fun ProfileScreen(
                         "saved" -> onNavigateToSaved()
                     }
                 },
-                isLoggedIn = true,
+                isLoggedIn = currentUser != null,
                 onNavigateToLogin = onNavigateToLogin
             )
         }
     ) { paddingValues ->
+
+        if (currentUser == null) {
+            NotLoggedInPlaceholder(
+                onNavigateToLogin = onNavigateToLogin,
+                modifier = Modifier.padding(paddingValues)
+            )
+            return@Scaffold
+        }
+
+        val user = currentUser!!
+
+        val userPosts by remember(user.id) {
+            if (user.id <= 0) flowOf(emptyList())
+            else postViewModel.loadUserPosts(user.id)
+        }.collectAsState(initial = emptyList())
 
         LazyColumn(
             modifier = Modifier
@@ -115,9 +118,17 @@ fun ProfileScreen(
                 }
             } else {
                 items(userPosts, key = { it.id }) { post ->
+
+                    val postAlbums by produceState<List<com.example.rankkings.model.Album>>(
+                        initialValue = emptyList(),
+                        key1 = post.id
+                    ) {
+                        postViewModel.getAlbumsByPost(post.id).collect { value = it }
+                    }
+
                     PostCard(
                         post = post,
-                        albumImages = emptyList(), // ⛔ álbumes no cargados aquí
+                        albumImages = postAlbums.map { it.albumImageUri },
                         onPostClick = { onNavigateToPostDetail(post.id) },
                         onLikeClick = { postViewModel.toggleLike(post) },
                         onCommentClick = { onNavigateToPostDetail(post.id) },

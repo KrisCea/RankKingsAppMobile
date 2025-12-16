@@ -1,5 +1,6 @@
 package com.example.rankkings.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.rankkings.model.Album
@@ -11,10 +12,27 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+sealed interface CreatePostState {
+    object Idle : CreatePostState
+    object Loading : CreatePostState
+    object Success : CreatePostState
+    data class Error(val message: String) : CreatePostState
+}
+
 @HiltViewModel
 class PostViewModel @Inject constructor(
     private val repository: Repository
 ) : ViewModel() {
+
+    /* ---------- CREATE POST STATE ---------- */
+
+    private val _createPostState =
+        MutableStateFlow<CreatePostState>(CreatePostState.Idle)
+    val createPostState = _createPostState.asStateFlow()
+
+    fun resetCreatePostState() {
+        _createPostState.value = CreatePostState.Idle
+    }
 
     /* ---------- POSTS ---------- */
 
@@ -29,15 +47,38 @@ class PostViewModel @Inject constructor(
     fun loadUserPosts(userId: Int): Flow<List<Post>> =
         repository.getPostsByUserId(userId)
 
-    /* ---------- ALBUMS (FIX CLAVE) ---------- */
+    fun createPostWithAlbums(post: Post, albums: List<Album>) {
+        viewModelScope.launch {
+            _createPostState.value = CreatePostState.Loading
+            try {
+                repository.createPostWithAlbums(post, albums)
+                _createPostState.value = CreatePostState.Success
+            } catch (e: Exception) {
+                Log.e("CREATE_POST", "Error creando post", e)
+                _createPostState.value =
+                    CreatePostState.Error(e.message ?: "Error creando post")
+            }
+        }
+    }
 
-    fun getAlbumsForPost(postId: Int): Flow<List<Album>> =
+    /* ---------- ALBUMS ---------- */
+
+    fun getAlbumsByPost(postId: Int): Flow<List<Album>> =
         repository.getAlbumsByPostId(postId)
 
     /* ---------- COMMENTS ---------- */
 
-    fun getCommentsForPost(postId: Int): Flow<List<Comment>> =
-        repository.getCommentsByPostId(postId)
+    private val _comments = MutableStateFlow<List<Comment>>(emptyList())
+    val comments = _comments.asStateFlow()
+
+    fun loadComments(postId: Int) {
+        viewModelScope.launch {
+            repository.getCommentsByPostId(postId)
+                .collect { list ->
+                    _comments.value = list
+                }
+        }
+    }
 
     fun addComment(
         postId: Int,
@@ -59,41 +100,31 @@ class PostViewModel @Inject constructor(
         }
     }
 
+
     /* ---------- ACTIONS ---------- */
 
-    fun toggleLike(post: Post) {
-        viewModelScope.launch {
-            repository.toggleLike(post)
-        }
-    }
+    fun toggleLike(post: Post) =
+        viewModelScope.launch { repository.toggleLike(post) }
 
-    fun toggleSave(post: Post) {
-        viewModelScope.launch {
-            repository.toggleSave(post)
-        }
-    }
+    fun toggleSave(post: Post) =
+        viewModelScope.launch { repository.toggleSave(post) }
 
-    fun togglePrivacy(post: Post) {
-        viewModelScope.launch {
-            repository.togglePrivacy(post)
-        }
-    }
+    fun togglePrivacy(post: Post) =
+        viewModelScope.launch { repository.togglePrivacy(post) }
 
-    fun deletePost(post: Post) {
-        viewModelScope.launch {
-            repository.deletePost(post)
-        }
-    }
+    fun deletePost(post: Post) =
+        viewModelScope.launch { repository.deletePost(post) }
+
+    /* ---------- TUTORIAL ---------- */
+
     private val _showTutorial = MutableStateFlow(true)
-    val showTutorial: StateFlow<Boolean> = _showTutorial.asStateFlow()
+    val showTutorial = _showTutorial.asStateFlow()
 
-    private val _tutorialText = MutableStateFlow(
-        "🔥 Desliza para ver los posts, vota con ❤️ y crea el tuyo con el botón +"
+    val tutorialText = MutableStateFlow(
+        "¡Bienvenido a RankKings! Desliza para descubrir nuevos rankings y pulsa '+' para crear el tuyo."
     )
-    val tutorialText: StateFlow<String> = _tutorialText.asStateFlow()
 
     fun closeTutorial() {
         _showTutorial.value = false
     }
 }
-

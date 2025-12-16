@@ -153,10 +153,15 @@ class AuthViewModel @Inject constructor(
             try {
                 val response = apiService.login(LoginRequest(email, password))
                 if (response.isSuccessful) {
-                    val auth = response.body() ?: return@launch
-                    val userResponse = apiService.getAuthUser("Bearer ${auth.authToken}")
 
+                    val auth = response.body() ?: return@launch
+
+                    // 🔐 Guardamos SOLO el token (user aún no existe)
+                    saveUserSession(-1, auth.authToken)
+
+                    val userResponse = apiService.getAuthUser()
                     if (userResponse.isSuccessful) {
+
                         userResponse.body()?.let {
                             val user = User(
                                 id = it.id,
@@ -164,6 +169,7 @@ class AuthViewModel @Inject constructor(
                                 email = it.email,
                                 passwordHash = ""
                             )
+
                             _currentUser.value = user
                             saveUserSession(user.id, auth.authToken)
                             _authState.value = AuthState.Success
@@ -177,6 +183,7 @@ class AuthViewModel @Inject constructor(
             }
         }
     }
+
 
     fun resetAuthState() {
         _authState.value = AuthState.Idle

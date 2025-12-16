@@ -1,19 +1,33 @@
 package com.example.rankkings.model
 
 import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
  * Entidad que representa un álbum musical en la base de datos
  * Cada álbum está asociado a un post específico
  */
-@Entity(tableName = "albums")
+@Entity(
+    tableName = "albums",
+    foreignKeys = [
+        ForeignKey(
+            entity = Post::class,
+            parentColumns = ["id"],
+            childColumns = ["postId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index("postId")]
+)
 data class Album(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val postId: Int, // ID del post al que pertenece este álbum
-    val albumImageUri: String, // URI de la imagen del álbum
-    val albumName: String, // Nombre del álbum
-    val artistName: String, // Nombre del artista
-    val ranking: Int // Posición en el ranking
+    val postId: Int,
+    val albumImageUri: String,
+    val albumName: String,
+    val artistName: String,
+    val ranking: Int
 )
+

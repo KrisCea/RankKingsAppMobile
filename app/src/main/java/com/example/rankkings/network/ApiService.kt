@@ -22,10 +22,6 @@ interface ApiService {
     @GET("auth/me")
     suspend fun getAuthUser(): Response<UserDto>
 
-    // Endpoint para obtener datos del usuario autenticado (pasando el token explícitamente)
-    @GET("auth/me")
-    suspend fun getAuthUser(@Header("Authorization") authToken: String): Response<UserDto>
-
     // User Endpoints (Estos ahora requerirán autenticación)
     @POST("user")
     suspend fun createUser(@Body user: UserDto): Response<UserDto>

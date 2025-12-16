@@ -17,9 +17,12 @@ import androidx.compose.ui.unit.dp
 import com.example.rankkings.ui.theme.Gold
 
 @Composable
-fun NotLoggedInPlaceholder(onNavigateToLogin: () -> Unit) {
+fun NotLoggedInPlaceholder(
+    onNavigateToLogin: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         Column(
